@@ -120,33 +120,14 @@ def get_bot_response(message):
         completion = client.chat.completions.create(
             model="nvidia/nemotron-3-nano-30b-a3b:free",
             messages=[
-                {
-                    "role": "system",
-                    "content": "Act like a kind mental health assistant. Give structured, all simple bullet points. Keep it supportive, interactive, and not too long. Avoid markdown symbols like ** or ###. Use natural language."
-                },
-                {
-                    "role": "user",
-                    "content": message
-                }
+                {"role": "system", "content": "You are a kind and supportive mental health assistant."},
+                {"role": "user", "content": message}
             ]
         )
 
-        raw_response = completion.choices[0].message.content
-        return clean_response(raw_response)
+        return completion.choices[0].message.content
 
     except Exception as e:
         print("ERROR:", e)
 
-        # 🔥 FALLBACK (VERY IMPORTANT)
-        # msg = message.lower()
-
-        # if "sad" in msg:
-        #     return "I'm really sorry you're feeling this way 💙 I'm here for you."
-        # elif "stress" in msg or "anxiety" in msg:
-        #     return "Take a deep breath. You're doing your best."
-        # elif "happy" in msg:
-        #     return "That's wonderful 😊 I'm glad you're feeling happy!"
-        # elif "lonely" in msg:
-        #     return "You're not alone 🤝 I'm here with you."
-        # else:
-        #     return "Tell me more about how you're feeling 💙"
+        return "⚠️ Server is busy right now. Please try again in a few seconds."
