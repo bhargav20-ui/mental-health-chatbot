@@ -1,166 +1,337 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>MindMate Chat</title>
+<title>Chatbot</title>
 
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial;
-            background: #f4f4f4;
-        }
+<style>
+body {
+    margin: 0;
+    font-family: "Segoe UI", Arial;
+    background: #f7f7f8;
+}
 
-        .header {
-            background: #4facfe;
-            color: white;
-            padding: 15px;
-            text-align: center;
-            position: relative;
-        }
+/* MAIN LAYOUT */
+.wrapper {
+    display: flex;
+    height: 100vh;
+}
 
-        .header a {
-            position: absolute;
-            right: 20px;
-            top: 15px;
-            color: white;
-            text-decoration: none;
-        }
+/* SIDEBAR */
+.sidebar {
+    width: 260px;
+    background: #ffffff;
+    border-right: 1px solid #ddd;
+    padding: 12px;
+}
 
-        .chat-container {
-            height: 75vh;
-            overflow-y: auto;
-            padding: 20px;
-            background: #f9f9f9;
-        }
+.sidebar h2 {
+    font-size: 16px;
+    margin-bottom: 15px;
+}
 
-        .message {
-            margin: 10px 0;
-            padding: 12px 15px;
-            border-radius: 15px;
-            max-width: 60%;
-            word-wrap: break-word;
-        }
+.sidebar button {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    border: none;
+    border-radius: 6px;
+    background: #4a90e2;
+    color: white;
+    cursor: pointer;
+}
 
-        .user {
-            background: #4facfe;
-            color: white;
-            margin-left: auto;
-        }
+/* 🔥 COMPACT CHAT LIST */
+.chat-list {
+    margin-top: 10px;
+}
 
-        .bot {
-            background: #e5e5e5;
-            color: black;
-            margin-right: auto;
-        }
+.chat-item {
+    padding: 6px 8px;
+    border-radius: 6px;
+    margin-bottom: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+    cursor: pointer;
+}
 
-        small {
-            font-size: 10px;
-            color: gray;
-        }
+.chat-item:hover {
+    background: #f0f0f0;
+}
 
-        .input-box {
-            display: flex;
-            padding: 10px;
-            background: #ddd;
-        }
+.chat-item.active {
+    background: #e6f0ff;
+}
 
-        input {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            outline: none;
-        }
+.chat-item a {
+    flex: 1;
+    text-decoration: none;
+    color: black;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 
-        button {
-            padding: 10px 20px;
-            background: #4facfe;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-    </style>
+.chat-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.chat-actions button {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px;
+}
+
+/* CHAT AREA */
+.chat-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* HEADER */
+.chat-header {
+    padding: 12px 20px;
+    border-bottom: 1px solid #ddd;
+    background: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chat-header button {
+    border: none;
+    background: #4a90e2;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+/* CHAT AREA */
+.chat-area {
+    flex: 1;
+    padding: 25px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.message {
+    max-width: 60%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+}
+
+.user {
+    background: #4a90e2;
+    color: white;
+    align-self: flex-end;
+}
+
+.bot {
+    background: #e4e6eb;
+    align-self: flex-start;
+}
+
+/* INPUT */
+.input-area {
+    display: flex;
+    padding: 15px;
+    border-top: 1px solid #ddd;
+    background: white;
+}
+
+input {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}
+
+button.send {
+    margin-left: 10px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    background: #4a90e2;
+    color: white;
+}
+
+/* CENTER TEXT */
+.center-box {
+    margin: auto;
+    text-align: center;
+    color: #666;
+}
+</style>
 
 </head>
+
 <body>
 
-<div class="header">
-    MindMate 💙
-    <a href="/logout/">Logout</a>
-</div>
+<div class="wrapper">
 
-<div id="chat-box" class="chat-container">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <h2>💬 Chatbot</h2>
 
-    <!-- Welcome message -->
-    <div class="message bot">
-        Hi {{ request.user.username }} 👋<br>
-        I'm MindMate 💙 How are you feeling today?
+        <button onclick="newChat()">+ New Chat</button>
+
+        <div class="chat-list">
+            {% for chat in chats %}
+                <div class="chat-item {% if current_chat and chat.id == current_chat.id %}active{% endif %}">
+
+                    <a href="?chat_id={{ chat.id }}">
+                        {{ chat.title|default:"New Chat" }}
+                    </a>
+
+                    <div class="chat-actions">
+                        <button onclick="event.stopPropagation(); renameChat({{ chat.id }})">✏️</button>
+                        <button onclick="event.stopPropagation(); deleteChat({{ chat.id }})">🗑️</button>
+                    </div>
+
+                </div>
+            {% endfor %}
+        </div>
     </div>
 
-    <!-- Chat history -->
-    {% for msg in messages %}
-        <div class="message user">
-            {{ msg.message }}
-            <br><small>{{ msg.timestamp }}</small>
+    <!-- CHAT AREA -->
+    <div class="chat-container">
+
+        <div class="chat-header">
+            <strong>
+                {% if current_chat %}
+                    {{ current_chat.title|default:"New Chat" }}
+                {% else %}
+                    New Chat
+                {% endif %}
+            </strong>
+
+            <button onclick="shareChat()">Share</button>
         </div>
 
-        <div class="message bot">
-            {{ msg.response }}
-            <br><small>{{ msg.timestamp }}</small>
+        <div class="chat-area">
+
+            {% if messages %}
+                {% for msg in messages %}
+                    <div class="message user">{{ msg.message }}</div>
+                    <div class="message bot">{{ msg.response }}</div>
+                {% endfor %}
+            {% else %}
+                <div class="center-box">
+                    <h1>What's on your mind today?</h1>
+                </div>
+            {% endif %}
+
         </div>
-    {% endfor %}
 
-</div>
+        <div class="input-area">
+            <input type="text" id="message" placeholder="Ask anything..." onkeydown="handleKey(event)">
+            <button class="send" onclick="sendMessage()">Send</button>
+        </div>
 
-<!-- Input box -->
-<div class="input-box">
-    <input id="message" placeholder="Type your message..." />
-    <button onclick="sendMessage()">Send</button>
+    </div>
+
 </div>
 
 <script>
+
+/* CSRF */
+function getCSRFToken() {
+    return document.cookie.split('; ')
+        .find(row => row.startsWith('csrftoken'))
+        ?.split('=')[1];
+}
+
 function sendMessage() {
-    let input = document.getElementById("message");
-    let msg = input.value.trim();
+    const input = document.getElementById("message");
+    const message = input.value.trim();
 
-    if (!msg) return;
+    if (!message) return;
 
-    let chatBox = document.getElementById("chat-box");
+    let chat_id = new URLSearchParams(window.location.search).get("chat_id");
 
-    // user message
-    chatBox.innerHTML += `<div class="message user">${msg}</div>`;
-
-    input.value = "";
-
-    // typing indicator
-    let typing = document.createElement("div");
-    typing.className = "message bot";
-    typing.innerHTML = "Typing...";
-    chatBox.appendChild(typing);
-
-    fetch('/chat/', {
-        method: 'POST',
+    fetch("/chat/", {
+        method: "POST",
         headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCSRFToken()
         },
-        body: JSON.stringify({ message: msg })
+        body: JSON.stringify({
+            message: message,
+            chat_id: chat_id
+        })
     })
     .then(res => res.json())
     .then(data => {
-        typing.remove();
+        input.value = "";
 
-        chatBox.innerHTML += `<div class="message bot">${data.response.replace(/\n/g, '<br>')}</div>`;
-
-        chatBox.scrollTop = chatBox.scrollHeight;
+        if (!chat_id) {
+            window.location.href = `/home/?chat_id=${data.chat_id}`;
+        } else {
+            location.reload();
+        }
     });
 }
 
-// Enter key support
-document.getElementById("message").addEventListener("keypress", function(e) {
-    if (e.key === "Enter") {
+function newChat() {
+    window.location.href = "/new_chat/";
+}
+
+function handleKey(event) {
+    if (event.key === "Enter") {
+        event.preventDefault();
         sendMessage();
     }
-});
+}
+
+function shareChat() {
+    navigator.clipboard.writeText(window.location.href)
+        .then(() => alert("Chat link copied!"));
+}
+
+function renameChat(chatId) {
+    const newTitle = prompt("Enter new name:");
+    if (!newTitle) return;
+
+    fetch("/rename_chat/", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCSRFToken()
+        },
+        body: JSON.stringify({
+            chat_id: chatId,
+            title: newTitle
+        })
+    })
+    .then(() => location.reload());
+}
+
+function deleteChat(chatId) {
+    if (!confirm("Delete this chat?")) return;
+
+    fetch("/delete_chat/", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCSRFToken()
+        },
+        body: JSON.stringify({
+            chat_id: chatId
+        })
+    })
+    .then(() => {
+        window.location.href = "/home/";
+    });
+}
+
 </script>
 
 </body>

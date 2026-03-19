@@ -6,7 +6,7 @@ from django.http import JsonResponse
 
 import json
 import re
-from .models import ChatMessage
+from .models import ChatMessage, Chat
 
 # -----------------------------
 # OPENROUTER SETUP
@@ -15,20 +15,19 @@ from openai import OpenAI
 
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
-    api_key="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"   # 🔐 Replace with your new key
+    api_key="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"   # 🔐 PUT NEW KEY HERE
 )
 
 # -----------------------------
-# CLEAN RESPONSE (REMOVE MARKDOWN)
+# CLEAN RESPONSE
 # -----------------------------
-
 def clean_response(text):
     if not text:
         return "Sorry, I'm having trouble responding right now."
 
-    text = re.sub(r'\*\*', '', text)   # remove **
-    text = re.sub(r'#+', '', text)     # remove ###
-    text = re.sub(r'\|.*?\|', '', text)
+    # remove accidental system prompt leak
+    if "Role:" in text or "Tone:" in text:
+        return "Hey, I'm here for you 😊 Tell me how you're feeling."
 
     return text.strip()
 
@@ -76,8 +75,25 @@ def signup_view(request):
 # -----------------------------
 @login_required
 def home(request):
-    messages = ChatMessage.objects.filter(user=request.user).order_by('timestamp')
-    return render(request, 'home.html', {'messages': messages})
+    chats = Chat.objects.filter(user=request.user).order_by('-created_at')
+
+    chat_id = request.GET.get('chat_id')
+
+    if chat_id:
+        try:
+            chat = Chat.objects.get(id=chat_id)
+        except Chat.DoesNotExist:
+            chat = chats.first()
+    else:
+        chat = chats.first()
+
+    messages = ChatMessage.objects.filter(chat=chat).order_by('timestamp') if chat else []
+
+    return render(request, 'home.html', {
+        'messages': messages,
+        'chats': chats,
+        'current_chat': chat
+    })
 
 
 # -----------------------------
@@ -89,6 +105,15 @@ def logout_view(request):
 
 
 # -----------------------------
+# NEW CHAT
+# -----------------------------
+@login_required
+def new_chat(request):
+    chat = Chat.objects.create(user=request.user)
+    return redirect(f'/home/?chat_id={chat.id}')
+
+
+# -----------------------------
 # CHAT API
 # -----------------------------
 @login_required
@@ -96,21 +121,73 @@ def chat(request):
     if request.method == 'POST':
         data = json.loads(request.body)
         message = data.get('message')
+        chat_id = data.get('chat_id')
+
+        # ✅ SAFE CHAT FETCH
+        if chat_id:
+            try:
+                chat = Chat.objects.get(id=chat_id)
+            except Chat.DoesNotExist:
+                chat = Chat.objects.create(user=request.user)
+        else:
+            chat = Chat.objects.create(user=request.user)
 
         response = get_bot_response(message)
 
-        # ✅ Prevent DB crash
         if not response:
             response = "Sorry, I'm having trouble responding right now."
 
+        # ✅ SAVE MESSAGE
         ChatMessage.objects.create(
+            chat=chat,
             user=request.user,
             message=message,
             response=response
         )
 
-        return JsonResponse({'response': response})
+        # ✅ SET TITLE (ONLY FIRST MESSAGE)
+        if not chat.title:
+            chat.title = message[:40]
+            chat.save()
 
+        return JsonResponse({
+            'response': response,
+            'chat_id': chat.id
+        })
+
+#------------------------------
+# RENAME CHAT
+# ------------------------------
+@login_required
+def rename_chat(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        chat_id = data.get("chat_id")
+        new_title = data.get("title")
+
+        try:
+            chat = Chat.objects.get(id=chat_id, user=request.user)
+            chat.title = new_title
+            chat.save()
+            return JsonResponse({"status": "success"})
+        except Chat.DoesNotExist:
+            return JsonResponse({"status": "error"})
+        
+# -----------------------------
+# DELETE CHAT
+# -----------------------------
+@login_required
+def delete_chat(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        chat_id = data.get("chat_id")
+
+        try:
+            chat = Chat.objects.get(id=chat_id, user=request.user)
+            chat.delete()
+            return JsonResponse({"status": "deleted"})
+        except Chat.DoesNotExist:
+            return JsonResponse({"status": "error"})
 
 # -----------------------------
 # CHATBOT LOGIC (FINAL)
@@ -196,12 +273,3 @@ def get_bot_response(message):
         # else:
         #     return "Tell me more about how you're feeling 💙"
 
-def clean_response(text):
-    if not text:
-        return "Sorry, I'm having trouble responding right now."
-
-    # remove accidental system prompt leak
-    if "Role:" in text or "Tone:" in text:
-        return "Hey, I'm here for you 😊 Tell me how you're feeling."
-
-    return text.strip()
