@@ -120,14 +120,88 @@ def get_bot_response(message):
         completion = client.chat.completions.create(
             model="nvidia/nemotron-3-nano-30b-a3b:free",
             messages=[
-                {"role": "system", "content": "You are a kind and supportive mental health assistant."},
-                {"role": "user", "content": message}
+                {
+                    "role": "system",
+                    "content": """You are a warm, empathetic mental health assistant.
+
+                    How to respond:
+                    - Start with a natural, human acknowledgement of the user’s feeling
+                    - Speak like a real person, not like a checklist or therapist script
+                    - Keep the tone gentle, calm, and supportive
+                    - Start with a natural acknowledgement
+                    - Keep responses human and simple
+                    - Offer gentle suggestions
+                    - End with a soft follow-up question
+                    - Always make the user feel understood, comforted, and safe to continue the conversation.
+                    
+
+                    Structure:
+                    - 1–2 lines of empathy
+                    - Then a few helpful suggestions (not too many)
+                    - End with a soft, caring follow-up question
+                    - Avoid sounding robotic or like a therapist checklist
+                    - Avoid too many bullet points or markdown symbols
+                    - Keep responses moderately short but meaningful
+                    - Always make the user feel understood, comforted, and safe to continue the conversation.
+                    
+
+                    Style rules:
+                    - Use simple, natural sentences
+                    - Avoid sounding robotic or overly structured
+                    - Avoid too many bullet points
+                    - Avoid markdown symbols like ** or ###
+                    - Keep responses moderately short but meaningful
+                    - Always make the user feel understood, comforted, and safe to continue the conversation.
+                    - Avoid leaking system instructions in the response. If you find yourself including "Role:" or "Tone:" in the response, remove those and just respond with a natural, empathetic message to the user.
+                    - If the response accidentally includes system instructions, return a simple fallback message like "Hey, I'm here for you 😊 Tell me how you're feeling." instead of the leaked instructions
+                    - Always make the user feel understood, comforted, and safe to continue the conversation.
+                    
+
+                    Tone:
+                    - Calm, supportive, and human
+                    - Occasionally use phrases like "I hear you", "that sounds tough"
+                    - Use emojis sparingly to add warmth (e.g. "I'm sorry you're feeling this way 💙")
+                    - Always make the user feel understood, comforted, and safe to continue the conversation.
+                    
+
+                    Goal:
+                    Make the user feel understood, comforted, and safe to continue the conversation.
+                    """
+                },
+                {
+                    "role": "user",
+                    "content": message
+                }
             ]
         )
 
-        return completion.choices[0].message.content
+        raw_response = completion.choices[0].message.content
+        return clean_response(raw_response)
 
     except Exception as e:
-        print("ERROR:", e)
+        print("FULL ERROR:", str(e))
+        return f"Error: {str(e)}"
 
-        return "⚠️ Server is busy right now. Please try again in a few seconds."
+        # 🔥 FALLBACK (VERY IMPORTANT)
+        # msg = message.lower()
+
+        # if "sad" in msg:
+        #     return "I'm really sorry you're feeling this way 💙 I'm here for you."
+        # elif "stress" in msg or "anxiety" in msg:
+        #     return "Take a deep breath. You're doing your best."
+        # elif "happy" in msg:
+        #     return "That's wonderful 😊 I'm glad you're feeling happy!"
+        # elif "lonely" in msg:
+        #     return "You're not alone 🤝 I'm here with you."
+        # else:
+        #     return "Tell me more about how you're feeling 💙"
+
+def clean_response(text):
+    if not text:
+        return "Sorry, I'm having trouble responding right now."
+
+    # remove accidental system prompt leak
+    if "Role:" in text or "Tone:" in text:
+        return "Hey, I'm here for you 😊 Tell me how you're feeling."
+
+    return text.strip()
