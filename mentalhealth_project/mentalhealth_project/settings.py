@@ -119,4 +119,8 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
+LOGIN_URL = '/'
+LOGIN_REDIRECT_URL = '/home/'
+LOGOUT_REDIRECT_URL = '/'
+
 GEMINI_API_KEY = "AIzaSyCzIjtA4-FUyrICdd2q6PmciVeLzFSXG8Q"
