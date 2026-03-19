@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MindMate Chat</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial;
+            background: #f4f4f4;
+        }
+
+        .header {
+            background: #4facfe;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header a {
+            position: absolute;
+            right: 20px;
+            top: 15px;
+            color: white;
+            text-decoration: none;
+        }
+
+        .chat-container {
+            height: 75vh;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f9f9f9;
+        }
+
+        .message {
+            margin: 10px 0;
+            padding: 12px 15px;
+            border-radius: 15px;
+            max-width: 60%;
+            word-wrap: break-word;
+        }
+
+        .user {
+            background: #4facfe;
+            color: white;
+            margin-left: auto;
+        }
+
+        .bot {
+            background: #e5e5e5;
+            color: black;
+            margin-right: auto;
+        }
+
+        small {
+            font-size: 10px;
+            color: gray;
+        }
+
+        .input-box {
+            display: flex;
+            padding: 10px;
+            background: #ddd;
+        }
+
+        input {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            outline: none;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #4facfe;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+
+</head>
+<body>
+
+<div class="header">
+    MindMate 💙
+    <a href="/logout/">Logout</a>
+</div>
+
+<div id="chat-box" class="chat-container">
+
+    <!-- Welcome message -->
+    <div class="message bot">
+        Hi {{ request.user.username }} 👋<br>
+        I'm MindMate 💙 How are you feeling today?
+    </div>
+
+    <!-- Chat history -->
+    {% for msg in messages %}
+        <div class="message user">
+            {{ msg.message }}
+            <br><small>{{ msg.timestamp }}</small>
+        </div>
+
+        <div class="message bot">
+            {{ msg.response }}
+            <br><small>{{ msg.timestamp }}</small>
+        </div>
+    {% endfor %}
+
+</div>
+
+<!-- Input box -->
+<div class="input-box">
+    <input id="message" placeholder="Type your message..." />
+    <button onclick="sendMessage()">Send</button>
+</div>
+
+<script>
+function sendMessage() {
+    let input = document.getElementById("message");
+    let msg = input.value.trim();
+
+    if (!msg) return;
+
+    let chatBox = document.getElementById("chat-box");
+
+    // user message
+    chatBox.innerHTML += `<div class="message user">${msg}</div>`;
+
+    input.value = "";
+
+    // typing indicator
+    let typing = document.createElement("div");
+    typing.className = "message bot";
+    typing.innerHTML = "Typing...";
+    chatBox.appendChild(typing);
+
+    fetch('/chat/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ message: msg })
+    })
+    .then(res => res.json())
+    .then(data => {
+        typing.remove();
+
+        chatBox.innerHTML += `<div class="message bot">${data.response.replace(/\n/g, '<br>')}</div>`;
+
+        chatBox.scrollTop = chatBox.scrollHeight;
+    });
+}
+
+// Enter key support
+document.getElementById("message").addEventListener("keypress", function(e) {
+    if (e.key === "Enter") {
+        sendMessage();
+    }
+});
+</script>
+
+</body>
+</html>

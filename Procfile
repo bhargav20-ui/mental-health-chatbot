@@ -1,0 +1,1 @@
+web: gunicorn mentalhealth_project.wsgi
