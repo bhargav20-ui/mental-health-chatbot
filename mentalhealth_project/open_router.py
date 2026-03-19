@@ -1,8 +1,9 @@
+import os
 from openai import OpenAI
 
 client = OpenAI(
   base_url="https://openrouter.ai/api/v1",
-  api_key="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",
+  api_key=os.getenv("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"),
 )
 
 completion = client.chat.completions.create(
