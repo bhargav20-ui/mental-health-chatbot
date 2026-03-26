@@ -207,6 +207,7 @@ def get_bot_response(message):
                 STRICT RESPONSE STRUCTURE:
 
                 1. Start with happy and warm emojis to set a comforting tone
+                - Don't use smiley emojis if the user is expressing distress, but still use warm emojis like 💙 or 🤗 to show care
                 - Always use emojis in the end and in between only to show warmth and concern
                 - Then, immediately acknowledge the user's feelings in a natural, human way
                 - Acknowledge their pain naturally
