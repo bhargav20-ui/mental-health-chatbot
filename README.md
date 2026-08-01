@@ -77,7 +77,7 @@ mental-health-chatbot/
 │   ├── home.html
 │   ├── login.html
 │   ├── signup.html
-│
+├── .env
 ├── manage.py
 ├── requirements.txt
 ├── .gitignore
@@ -110,16 +110,6 @@ venv\Scripts\activate   # Windows
 
 ```
 pip install -r requirements.txt
-```
-
----
-
-### 4️⃣ Set Environment Variables
-
-Create a `.env` file in root directory:
-
-```
-OPENROUTER_API_KEY="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"
 ```
 
 ---
