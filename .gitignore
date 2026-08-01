@@ -1,22 +1,13 @@
 # Python
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
-*.pyd
 
-# Virtual Environment
-venv/
-env/
-
-# Django
+# Database
 db.sqlite3
 
-# Environment variables
+# Environment
 .env
-
-# VS Code
-.vscode/
-
-# OS files
-.DS_Store
-Thumbs.db
+venv/
+# Testing
+test_gemini.py

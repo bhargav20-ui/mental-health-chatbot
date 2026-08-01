@@ -192,8 +192,8 @@ button.send {
                     </a>
 
                     <div class="chat-actions">
-                        <button onclick="event.stopPropagation(); renameChat({{ chat.id }})">✏️</button>
-                        <button onclick="event.stopPropagation(); deleteChat({{ chat.id }})">🗑️</button>
+                        <button onclick="event.stopPropagation(); renameChat('{{ chat.id }}')">✏️</button>
+                        <button onclick="event.stopPropagation(); deleteChat('{{ chat.id }}')">🗑️</button>
                     </div>
 
                 </div>
@@ -239,8 +239,9 @@ button.send {
     </div>
 
 </div>
-
 <script>
+
+let currentChatId = new URLSearchParams(window.location.search).get("chat_id");
 
 /* CSRF */
 function getCSRFToken() {
@@ -251,11 +252,36 @@ function getCSRFToken() {
 
 function sendMessage() {
     const input = document.getElementById("message");
+
+    if (input.disabled) return;
     const message = input.value.trim();
 
     if (!message) return;
 
-    let chat_id = new URLSearchParams(window.location.search).get("chat_id");
+    const chatArea = document.querySelector(".chat-area");
+    let chat_id = currentChatId;
+    // Remove welcome message
+    const centerBox = document.querySelector(".center-box");
+    if (centerBox) {
+        centerBox.remove();
+    }
+    // Show user message immediately
+    const userDiv = document.createElement("div");
+    userDiv.className = "message user";
+    userDiv.textContent = message;
+    chatArea.appendChild(userDiv);
+
+    // Typing indicator
+    const typingDiv = document.createElement("div");
+    typingDiv.className = "message bot";
+    typingDiv.id = "typing";
+    typingDiv.innerHTML = "Thinking...";
+    chatArea.appendChild(typingDiv);
+
+    chatArea.scrollTop = chatArea.scrollHeight;
+
+    input.value = "";
+    input.disabled = true;
 
     fetch("/chat/", {
         method: "POST",
@@ -270,13 +296,62 @@ function sendMessage() {
     })
     .then(res => res.json())
     .then(data => {
-        input.value = "";
 
-        if (!chat_id) {
-            window.location.href = `/home/?chat_id=${data.chat_id}`;
-        } else {
-            location.reload();
+        document.getElementById("typing").remove();
+
+        const botDiv = document.createElement("div");
+        botDiv.className = "message bot";
+        
+        botDiv.innerHTML = data.response.replace(/\n/g,"<br>");
+        chatArea.appendChild(botDiv);
+        chatArea.scrollTop = chatArea.scrollHeight;
+                // Update title
+        document.querySelector(".chat-header strong").textContent = data.title;
+        
+        if (!currentChatId) {
+
+            currentChatId = data.chat_id;
+
+            window.history.replaceState(
+                {},
+                "",
+                `/home/?chat_id=${currentChatId}`
+            );
+
+            input.disabled = false;
+
+            setTimeout(() => {
+                location.reload();
+            }, 100);
+
+            return;
         }
+             
+        chatArea.scrollTop = chatArea.scrollHeight;
+
+        input.disabled = false;
+        input.focus();
+
+        // Redirect only if this was a brand-new chat
+        // First message of a new chat
+        
+    })
+    .catch(err => {
+
+        document.getElementById("typing")?.remove();
+
+        const botDiv = document.createElement("div");
+        botDiv.className = "message bot";
+        botDiv.innerHTML = "⚠️ Sorry, something went wrong. Please try again.";
+        chatArea.appendChild(botDiv);
+
+        chatArea.scrollTop = chatArea.scrollHeight;
+
+        input.disabled = false;
+        input.focus();
+
+        console.error(err);
+
     });
 }
 
@@ -285,7 +360,7 @@ function newChat() {
 }
 
 function handleKey(event) {
-    if (event.key === "Enter") {
+    if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
         sendMessage();
     }
@@ -293,46 +368,100 @@ function handleKey(event) {
 
 function shareChat() {
     navigator.clipboard.writeText(window.location.href)
-        .then(() => alert("Chat link copied!"));
+        .then(() => Swal.fire({
+                        icon: "success",
+                        title: "Copied!",
+                        text: "Chat link copied successfully.",
+                        timer: 1500,
+                        showConfirmButton: false
+                    }));
+
 }
 
 function renameChat(chatId) {
-    const newTitle = prompt("Enter new name:");
-    if (!newTitle) return;
 
-    fetch("/rename_chat/", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": getCSRFToken()
-        },
-        body: JSON.stringify({
-            chat_id: chatId,
-            title: newTitle
+    Swal.fire({
+        title: "Rename chat",
+        input: "text",
+        inputPlaceholder: "Enter new chat name",
+        showCancelButton: true,
+        confirmButtonText: "Save"
+    }).then((result) => {
+
+        if (!result.isConfirmed) return;
+
+        fetch("/rename_chat/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCSRFToken()
+            },
+            body: JSON.stringify({
+                chat_id: chatId,
+                title: result.value
+            })
         })
-    })
-    .then(() => location.reload());
+        .then(() => location.reload());
+
+    });
+
+}
+function getCookie(name) {
+    let cookieValue = null;
+
+    if (document.cookie && document.cookie !== "") {
+        const cookies = document.cookie.split(";");
+
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+
+            if (cookie.startsWith(name + "=")) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+
+    return cookieValue;
 }
 
 function deleteChat(chatId) {
-    if (!confirm("Delete this chat?")) return;
+    Swal.fire({
+        title: "Delete chat?",
+        text: "This action cannot be undone.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Delete",
+        cancelButtonText: "Cancel"
+    }).then((result) => {
 
-    fetch("/delete_chat/", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": getCSRFToken()
-        },
-        body: JSON.stringify({
-            chat_id: chatId
-        })
-    })
-    .then(() => {
-        window.location.href = "/home/";
+        if (result.isConfirmed) {
+
+            fetch("/delete_chat/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getCookie("csrftoken")
+                },
+                body: JSON.stringify({
+                    chat_id: chatId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "deleted") {
+                    location.reload();
+                }
+            });
+
+        }
+
     });
 }
 
 </script>
-
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </body>
 </html>
