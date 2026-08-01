@@ -11,11 +11,16 @@ from .models import ChatMessage, Chat
 # -----------------------------
 # OPENROUTER SETUP
 # -----------------------------
-from openai import OpenAI
+import os
+from dotenv import load_dotenv
+from google import genai
 
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key="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"   # 🔐 PUT NEW KEY HERE
+# Load environment variables
+load_dotenv()
+
+# Gemini client
+client = genai.Client(
+    api_key=os.getenv("GEMINI_API_KEY")
 )
 
 # -----------------------------

@@ -1,29 +1,16 @@
 import os
 from dotenv import load_dotenv
-from openai import OpenAI
+from google import genai
 
 # Load environment variables
 load_dotenv()
 
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("GEMINI_API_KEY"),
+# Gemini client
+client = genai.Client(
+    api_key=os.getenv("GEMINI_API_KEY")
 )
 
-def get_bot_response(user_message):
-    try:
-        completion = client.chat.completions.create(
-            extra_headers={
-                "HTTP-Referer": "https://mental-health-chatbot-qk8w.onrender.com",
-                "X-OpenRouter-Title": "Mental Health Chatbot",
-            },
-
-            model="google/gemma-3-27b-it:free",   
-
-            messages=[
-                {
-                    "role": "system",
-                    "content": """
+SYSTEM_PROMPT = """
 You are a compassionate AI mental health support assistant.
 
 Your goal is to help users feel heard, understood, and emotionally supported.
@@ -83,18 +70,23 @@ Never judge.
 
 Always remain warm, calm, supportive, and conversational.
 """
-                },
-                {
-                    "role": "user",
-                    "content": user_message
-                }
-            ],
 
-            temperature=0.7,
-            max_tokens=1024,
+def get_bot_response(user_message):
+    try:
+
+        prompt = f"""
+{SYSTEM_PROMPT}
+
+User:
+{user_message}
+"""
+
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
         )
 
-        return completion.choices[0].message.content
+        return response.text
 
     except Exception as e:
-        return f"Error: {str(e)}"
+        return f"Error: {e}"
