@@ -1,4 +1,5 @@
 ﻿# 🧠 Mental Health AI Chatbot
+https://mental-health-chatbot-qk8w.onrender.com/
 
 An AI-powered mental health support chatbot built using **Django** and **OpenRouter (LLMs)**.
 This application provides a safe, supportive, and interactive environment where users can express their thoughts and receive empathetic, human-like responses.
