@@ -7,7 +7,7 @@ load_dotenv()
 
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY"),
+    api_key=os.getenv("GEMINI_API_KEY"),
 )
 
 def get_bot_response(user_message):
@@ -18,7 +18,7 @@ def get_bot_response(user_message):
                 "X-OpenRouter-Title": "Mental Health Chatbot",
             },
 
-            model="nvidia/nemotron-3-nano-30b-a3b:free",
+            model="google/gemma-3-27b-it:free",   
 
             messages=[
                 {
